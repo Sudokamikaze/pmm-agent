@@ -117,12 +117,13 @@ func New(stream agentpb.Agent_ConnectClient) *Channel {
 }
 
 func (c *Channel) runUnexpectedPayloadSender() {
-	t := time.NewTicker(time.Second * 1)
+	t := time.NewTicker(time.Second * 5)
 	for {
 		select {
 		case <-c.closeWait:
 			return
 		case <-t.C:
+			c.l.Info("Sending unexpected message...")
 			c.Send(&AgentResponse{
 				ID:      uint32(rand.Intn(500) + 1),
 				Payload: &agentpb.UnexpectedResponse{},
