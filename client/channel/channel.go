@@ -17,8 +17,10 @@
 package channel
 
 import (
+	"math/rand"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/golang/protobuf/proto" //nolint:staticcheck
 	"github.com/percona/pmm/api/agentpb"
@@ -110,7 +112,23 @@ func New(stream agentpb.Agent_ConnectClient) *Channel {
 	}
 
 	go s.runReceiver()
+	go s.runUnexpectedPayloadSender()
 	return s
+}
+
+func (c *Channel) runUnexpectedPayloadSender() {
+	t := time.NewTicker(time.Second * 1)
+	for {
+		select {
+		case <-c.closeWait:
+			return
+		case <-t.C:
+			c.Send(&AgentResponse{
+				ID:      uint32(rand.Intn(500) + 1),
+				Payload: &agentpb.UnexpectedResponse{},
+			})
+		}
+	}
 }
 
 // close marks channel as closed with given error - only once.
